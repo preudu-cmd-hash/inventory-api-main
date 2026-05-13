@@ -1,10 +1,7 @@
-import { AppDataSource } from "../data-source";
-import { Products } from "../entities/Products";
 import { ProductServices } from "../services/productService";
 import type { Request, Response, NextFunction } from "express";
 
 export class ProductsController {
-  private productChecker = AppDataSource.getRepository(Products);
   private productService = new ProductServices();
 
   get = async (req: Request, res: Response, next: NextFunction) => {
@@ -18,6 +15,7 @@ export class ProductsController {
 
   create = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      await this.productService.validateSchema(req.body);
       const newProduct = await this.productService.create(req.body);
 
       return res
@@ -30,11 +28,9 @@ export class ProductsController {
 
   update = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const id: number = Number(req.params.id);
-      const exist = await this.productChecker.findOneBy({ id });
-      if (!exist)
-        return res.status(404).json({ message: "Produto não encontrado" });
+      await this.productService.validateSchema(req.body, true);
 
+      const id: number = Number(req.params.id);
       const updatedProduct = await this.productService.update(id, req.body);
       return res.status(200).json({
         message: "produto atualizado com sucesso",
@@ -47,10 +43,6 @@ export class ProductsController {
 
   delete = async (req: Request, res: Response, next: NextFunction) => {
     const id: number = Number(req.params.id);
-    const exist = await this.productChecker.findOneBy({ id });
-    if (!exist)
-      return res.status(404).json({ message: "Produto não encontrado" });
-
     try {
       await this.productService.delete(id);
       return res.status(204).send();
